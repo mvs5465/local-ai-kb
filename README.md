@@ -37,8 +37,8 @@ src/local_ai_kb/
 - `make run` pulls `embeddinggemma` if it is missing locally.
 - Qdrant installs into `.local/bin/qdrant` and stores data under `.data/qdrant/`.
 - Personal memory remains file-backed and portable; Qdrant is only the retrieval layer.
-- Index sources are configured in `sources.yaml`. The default config includes all top-level repo `README.md` files under `~/projects`, plus local `docs/` and `personal-memory/`.
-- Each source block in `sources.yaml` supports `paths` plus optional `exclude_paths`, so you can add repo docs, `AGENTS.md`/`CLAUDE.md`, or other markdown sources without touching code.
+- Index sources are configured in `sources.yaml`. The default config includes top-level and one-level nested repo `README.md`, `AGENTS.md`, and `CLAUDE.md` files under `~/projects`, plus local `docs/` and `personal-memory/`.
+- Each source block in `sources.yaml` supports `paths` plus optional `exclude_paths`, so you can add repo docs, guidance files, or other markdown sources without touching code.
 - Source blocks can also carry `confidence` and `canonical` metadata, which the reranker uses when ordering results.
 - The MCP server now exposes both `search_kb` and `record_memory`.
 - `search_kb` works best without `source_types` by default; if you want to narrow, it accepts either a JSON list or a comma-separated string, and friendly aliases like `memory`, `docs`, `guidance`, and `external`.

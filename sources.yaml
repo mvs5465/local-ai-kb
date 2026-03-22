@@ -7,8 +7,11 @@ sources:
     tags: [readme, repo]
     paths:
       - /Users/matthewschwartz/projects/*/README.md
+      - /Users/matthewschwartz/projects/*/*/README.md
     exclude_paths:
       - /Users/matthewschwartz/projects/_worktrees/**/*
+      - /Users/matthewschwartz/projects/.worktrees/**/*
+      - /Users/matthewschwartz/projects/.codex-worktrees/**/*
 
   - name: repo-guidance
     source_type: internal_guidance
@@ -18,9 +21,13 @@ sources:
     tags: [guidance, policy]
     paths:
       - /Users/matthewschwartz/projects/*/AGENTS.md
+      - /Users/matthewschwartz/projects/*/*/AGENTS.md
       - /Users/matthewschwartz/projects/*/CLAUDE.md
+      - /Users/matthewschwartz/projects/*/*/CLAUDE.md
     exclude_paths:
       - /Users/matthewschwartz/projects/_worktrees/**/*
+      - /Users/matthewschwartz/projects/.worktrees/**/*
+      - /Users/matthewschwartz/projects/.codex-worktrees/**/*
 
   - name: repo-docs
     source_type: internal_docs
