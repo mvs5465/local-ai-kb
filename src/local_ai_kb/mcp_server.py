@@ -1,14 +1,17 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
 
 import uvicorn
 from mcp.server.fastmcp import FastMCP
 from mcp.server.transport_security import TransportSecuritySettings
 
+from local_ai_kb.config import ROOT_DIR
 from local_ai_kb.embedding import embed_texts
+from local_ai_kb.memory_store import index_memory_file, write_memory
 from local_ai_kb.qdrant_store import search
-from local_ai_kb.retrieval import format_snippet
+from local_ai_kb.retrieval import format_flags, format_snippet
 
 
 host = os.getenv("HOST", "127.0.0.1")
@@ -46,13 +49,39 @@ def search_kb(query: str, limit: int = 5, source_types: list[str] | None = None)
     for index, item in enumerate(results, start=1):
         lines.append(
             f"{index}. [{item.source_type}] {item.path} :: {item.heading} "
-            f"(rank={item.score:.4f}, vector={item.raw_score:.4f})"
+            f"(rank={item.score:.4f}, vector={item.raw_score:.4f}, lexical={item.lexical_score:.4f})"
         )
         if item.source_name:
             lines.append(f"source: {item.source_name}")
+        lines.append(f"flags: {format_flags(item)}")
         lines.append(format_snippet(item.text))
         lines.append("")
     return "\n".join(lines).strip()
+
+
+@mcp.tool(
+    description=(
+        "Record a durable personal memory note into the local KB and index it immediately. "
+        "Use this for stable decisions, gotchas, preferences, or short session notes worth keeping."
+    )
+)
+def record_memory(
+    title: str,
+    summary: str,
+    kind: str = "session-note",
+    source: str = "",
+    tags: list[str] | None = None,
+) -> str:
+    path = write_memory(
+        root_dir=ROOT_DIR,
+        kind=kind,
+        title=title,
+        summary=summary,
+        source=source,
+        tags=tags or [],
+    )
+    indexed = index_memory_file(Path(path), source_name="personal-memory")
+    return f"Recorded memory at {path} and indexed {indexed} chunk(s)."
 
 
 app = mcp.streamable_http_app()

@@ -40,6 +40,9 @@ def build_points() -> list[models.PointStruct]:
                     "confidence": source_file.confidence,
                     "canonical": source_file.canonical,
                     "modified_at": modified_at,
+                    "stale_after_days": source_file.stale_after_days,
+                    "deprecated": source_file.deprecated,
+                    "tags": list(source_file.tags),
                 }
             )
             chunk_texts.append(f"{chunk['heading']}\n\n{chunk_text}")

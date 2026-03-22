@@ -3,6 +3,8 @@ sources:
     source_type: internal_docs
     confidence: 0.72
     canonical: false
+    stale_after_days: 120
+    tags: [readme, repo]
     paths:
       - /Users/matthewschwartz/projects/*/README.md
     exclude_paths:
@@ -12,6 +14,8 @@ sources:
     source_type: internal_guidance
     confidence: 0.9
     canonical: true
+    stale_after_days: 180
+    tags: [guidance, policy]
     paths:
       - /Users/matthewschwartz/projects/*/AGENTS.md
       - /Users/matthewschwartz/projects/*/CLAUDE.md
@@ -22,6 +26,8 @@ sources:
     source_type: internal_docs
     confidence: 0.82
     canonical: true
+    stale_after_days: 180
+    tags: [docs]
     paths:
       - /Users/matthewschwartz/projects/*/docs/**/*.md
     exclude_paths:
@@ -31,6 +37,8 @@ sources:
     source_type: internal_docs
     confidence: 0.95
     canonical: true
+    stale_after_days: 365
+    tags: [kb, curated]
     paths:
       - ./docs/**/*.md
 
@@ -38,5 +46,6 @@ sources:
     source_type: personal_memory
     confidence: 0.96
     canonical: true
+    tags: [memory, personal]
     paths:
       - ./personal-memory/**/*.md

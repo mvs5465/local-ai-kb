@@ -17,6 +17,9 @@ class SourceFile:
     source_type: str
     confidence: float
     canonical: bool
+    stale_after_days: int | None
+    deprecated: bool
+    tags: tuple[str, ...]
 
 
 def _expand_path(pattern: str) -> Iterable[Path]:
@@ -58,6 +61,9 @@ def iter_source_files() -> list[SourceFile]:
         source_type = source["source_type"]
         confidence = float(source.get("confidence", 0.7))
         canonical = bool(source.get("canonical", False))
+        stale_after_days = source.get("stale_after_days")
+        deprecated = bool(source.get("deprecated", False))
+        tags = tuple(str(tag) for tag in source.get("tags", []))
         exclude_paths = source.get("exclude_paths", [])
         for pattern in source.get("paths", []):
             for path in _expand_path(pattern):
@@ -77,6 +83,9 @@ def iter_source_files() -> list[SourceFile]:
                         source_type=source_type,
                         confidence=confidence,
                         canonical=canonical,
+                        stale_after_days=int(stale_after_days) if stale_after_days is not None else None,
+                        deprecated=deprecated,
+                        tags=tags,
                     )
                 )
 

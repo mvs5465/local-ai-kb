@@ -26,6 +26,7 @@ personal-memory/
   decisions/
   gotchas/
   preferences/
+  session-notes/
 scripts/
 sources.yaml
 src/local_ai_kb/
@@ -39,3 +40,5 @@ src/local_ai_kb/
 - Index sources are configured in `sources.yaml`. The default config includes all top-level repo `README.md` files under `~/projects`, plus local `docs/` and `personal-memory/`.
 - Each source block in `sources.yaml` supports `paths` plus optional `exclude_paths`, so you can add repo docs, `AGENTS.md`/`CLAUDE.md`, or other markdown sources without touching code.
 - Source blocks can also carry `confidence` and `canonical` metadata, which the reranker uses when ordering results.
+- The MCP server now exposes both `search_kb` and `record_memory`.
+- `record_memory` writes a markdown note into `personal-memory/` and indexes it immediately, so future sessions can capture durable notes without manual file editing.

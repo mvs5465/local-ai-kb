@@ -53,6 +53,7 @@ SOURCE_TYPE_BOOSTS = {
 class RankedResult:
     score: float
     raw_score: float
+    lexical_score: float
     path: str
     source_type: str
     source_name: str
@@ -61,6 +62,9 @@ class RankedResult:
     confidence: float
     canonical: bool
     modified_at: str
+    stale_after_days: int | None
+    deprecated: bool
+    tags: tuple[str, ...]
 
 
 def _tokenize(text: str) -> set[str]:
@@ -113,6 +117,45 @@ def _freshness_boost(modified_at: str) -> float:
     return 0.0
 
 
+def _staleness_penalty(modified_at: str, stale_after_days: int | None) -> float:
+    if not modified_at or stale_after_days is None:
+        return 0.0
+    try:
+        modified = datetime.fromisoformat(modified_at)
+    except ValueError:
+        return 0.0
+    if modified.tzinfo is None:
+        modified = modified.replace(tzinfo=timezone.utc)
+    age_days = max((datetime.now(timezone.utc) - modified).days, 0)
+    if age_days <= stale_after_days:
+        return 0.0
+    overdue = age_days - stale_after_days
+    if overdue <= 30:
+        return 0.06
+    if overdue <= 180:
+        return 0.12
+    return 0.18
+
+
+def _deprecated_penalty(query_tokens: set[str], deprecated: bool) -> float:
+    if not deprecated:
+        return 0.0
+    if {"deprecated", "legacy", "old", "superseded"} & query_tokens:
+        return 0.0
+    return 0.35
+
+
+def _lexical_score(query_tokens: set[str], path: str, heading: str, text: str, tags: tuple[str, ...]) -> float:
+    if not query_tokens:
+        return 0.0
+    score = 0.0
+    score += _overlap_score(query_tokens, heading, 0.85)
+    score += _overlap_score(query_tokens, path, 0.65)
+    score += _overlap_score(query_tokens, " ".join(tags), 0.35)
+    score += _overlap_score(query_tokens, text[:1600], 0.55)
+    return score
+
+
 def _query_shape_boost(query_tokens: set[str], path: str, heading: str) -> float:
     joined = f"{path} {heading}".lower()
     boost = 0.0
@@ -147,11 +190,20 @@ def rerank_results(query: str, hits: list[dict], limit: int) -> list[RankedResul
 
     for hit in hits:
         raw_score = float(hit["score"])
-        score = raw_score
+        lexical_score = _lexical_score(
+            query_tokens,
+            hit["path"],
+            hit["heading"],
+            hit["text"],
+            tuple(hit.get("tags", [])),
+        )
+        score = raw_score + lexical_score
         score += SOURCE_TYPE_BOOSTS.get(hit["source_type"], 0.0)
         score += min(max(float(hit.get("confidence", 0.7)) - 0.7, 0.0), 0.3) * 0.4
         score += 0.05 if hit.get("canonical", False) else 0.0
         score += _freshness_boost(hit.get("modified_at", ""))
+        score -= _staleness_penalty(hit.get("modified_at", ""), hit.get("stale_after_days"))
+        score -= _deprecated_penalty(query_tokens, bool(hit.get("deprecated", False)))
         score += _curation_boost(hit["path"], hit["source_type"])
         score += _overlap_score(query_tokens, hit["heading"], 0.32)
         score += _overlap_score(query_tokens, hit["path"], 0.22)
@@ -162,6 +214,7 @@ def rerank_results(query: str, hits: list[dict], limit: int) -> list[RankedResul
             RankedResult(
                 score=score,
                 raw_score=raw_score,
+                lexical_score=lexical_score,
                 path=hit["path"],
                 source_type=hit["source_type"],
                 source_name=hit.get("source_name", ""),
@@ -170,6 +223,9 @@ def rerank_results(query: str, hits: list[dict], limit: int) -> list[RankedResul
                 confidence=float(hit.get("confidence", 0.7)),
                 canonical=bool(hit.get("canonical", False)),
                 modified_at=hit.get("modified_at", ""),
+                stale_after_days=hit.get("stale_after_days"),
+                deprecated=bool(hit.get("deprecated", False)),
+                tags=tuple(hit.get("tags", [])),
             )
         )
 
@@ -177,6 +233,7 @@ def rerank_results(query: str, hits: list[dict], limit: int) -> list[RankedResul
         key=lambda item: (
             item.score,
             item.raw_score,
+            item.lexical_score,
             -math.log(max(len(item.text), 50)),
         ),
         reverse=True,
@@ -205,3 +262,15 @@ def format_snippet(text: str, limit: int = 320) -> str:
     if len(collapsed) <= limit:
         return collapsed
     return collapsed[: limit - 3].rstrip() + "..."
+
+
+def format_flags(item: RankedResult) -> str:
+    flags: list[str] = []
+    if item.canonical:
+        flags.append("canonical")
+    if item.deprecated:
+        flags.append("deprecated")
+    if item.stale_after_days is not None:
+        flags.append(f"stale_after={item.stale_after_days}d")
+    flags.append(f"confidence={item.confidence:.2f}")
+    return ", ".join(flags)
