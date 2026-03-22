@@ -1,0 +1,7 @@
+.venv/
+.data/
+.local/
+.run/
+.qdrant-initialized
+__pycache__/
+*.pyc
