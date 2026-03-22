@@ -8,6 +8,7 @@ from mcp.server.transport_security import TransportSecuritySettings
 
 from local_ai_kb.embedding import embed_texts
 from local_ai_kb.qdrant_store import search
+from local_ai_kb.retrieval import format_snippet
 
 
 host = os.getenv("HOST", "127.0.0.1")
@@ -37,16 +38,19 @@ mcp = FastMCP(
 )
 def search_kb(query: str, limit: int = 5, source_types: list[str] | None = None) -> str:
     embedding = embed_texts([query])[0]
-    results = search(embedding=embedding, limit=limit, source_types=source_types)
+    results = search(query=query, embedding=embedding, limit=limit, source_types=source_types)
     if not results:
         return "No matching KB entries found."
 
     lines = []
     for index, item in enumerate(results, start=1):
         lines.append(
-            f"{index}. [{item['source_type']}] {item['path']} :: {item['heading']} (score={item['score']:.4f})"
+            f"{index}. [{item.source_type}] {item.path} :: {item.heading} "
+            f"(rank={item.score:.4f}, vector={item.raw_score:.4f})"
         )
-        lines.append(item["text"])
+        if item.source_name:
+            lines.append(f"source: {item.source_name}")
+        lines.append(format_snippet(item.text))
         lines.append("")
     return "\n".join(lines).strip()
 

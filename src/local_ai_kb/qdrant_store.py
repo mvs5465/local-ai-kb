@@ -6,6 +6,7 @@ from qdrant_client import QdrantClient
 from qdrant_client.http import models
 
 from local_ai_kb.config import QDRANT_COLLECTION, QDRANT_URL
+from local_ai_kb.retrieval import RankedResult, rerank_results
 
 
 def get_client() -> QdrantClient:
@@ -37,7 +38,12 @@ def replace_points(points: Iterable[models.PointStruct]) -> None:
     client.upsert(collection_name=QDRANT_COLLECTION, points=list(points))
 
 
-def search(embedding: list[float], limit: int, source_types: list[str] | None = None) -> list[dict]:
+def search(
+    query: str,
+    embedding: list[float],
+    limit: int,
+    source_types: list[str] | None = None,
+) -> list[RankedResult]:
     client = get_client()
     query_filter = None
     if source_types:
@@ -54,7 +60,7 @@ def search(embedding: list[float], limit: int, source_types: list[str] | None = 
         collection_name=QDRANT_COLLECTION,
         query=embedding,
         query_filter=query_filter,
-        limit=limit,
+        limit=max(limit * 5, 20),
         with_payload=True,
     ).points
 
@@ -66,8 +72,9 @@ def search(embedding: list[float], limit: int, source_types: list[str] | None = 
                 "score": hit.score,
                 "path": payload.get("path", ""),
                 "source_type": payload.get("source_type", ""),
+                "source_name": payload.get("source_name", ""),
                 "heading": payload.get("heading", ""),
                 "text": payload.get("text", ""),
             }
         )
-    return results
+    return rerank_results(query=query, hits=results, limit=limit)
