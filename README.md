@@ -13,6 +13,7 @@ Lean local knowledge base stack for personal docs and durable memory.
 
 - `make run`: start Ollama, Qdrant, and the MCP server
 - `make index`: index `docs/` and `personal-memory/` into Qdrant
+- `make eval`: run the search eval cases in `evals/search_cases.yaml`
 - `make stop`: stop the MCP server, Qdrant, and any Ollama process started by this repo
 
 ## Layout
@@ -37,3 +38,4 @@ src/local_ai_kb/
 - Personal memory remains file-backed and portable; Qdrant is only the retrieval layer.
 - Index sources are configured in `sources.yaml`. The default config includes all top-level repo `README.md` files under `~/projects`, plus local `docs/` and `personal-memory/`.
 - Each source block in `sources.yaml` supports `paths` plus optional `exclude_paths`, so you can add repo docs, `AGENTS.md`/`CLAUDE.md`, or other markdown sources without touching code.
+- Source blocks can also carry `confidence` and `canonical` metadata, which the reranker uses when ordering results.

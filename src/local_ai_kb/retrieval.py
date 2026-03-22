@@ -3,6 +3,7 @@ from __future__ import annotations
 import math
 import re
 from dataclasses import dataclass
+from datetime import datetime, timezone
 
 
 TOKEN_RE = re.compile(r"[a-z0-9][a-z0-9-]+")
@@ -57,6 +58,9 @@ class RankedResult:
     source_name: str
     heading: str
     text: str
+    confidence: float
+    canonical: bool
+    modified_at: str
 
 
 def _tokenize(text: str) -> set[str]:
@@ -87,6 +91,25 @@ def _curation_boost(path: str, source_type: str) -> float:
         return 0.18
     if path.startswith("projects/local-ai-kb/personal-memory/"):
         return 0.22
+    return 0.0
+
+
+def _freshness_boost(modified_at: str) -> float:
+    if not modified_at:
+        return 0.0
+    try:
+        modified = datetime.fromisoformat(modified_at)
+    except ValueError:
+        return 0.0
+    if modified.tzinfo is None:
+        modified = modified.replace(tzinfo=timezone.utc)
+    age_days = max((datetime.now(timezone.utc) - modified).days, 0)
+    if age_days <= 14:
+        return 0.08
+    if age_days <= 60:
+        return 0.04
+    if age_days <= 180:
+        return 0.02
     return 0.0
 
 
@@ -126,6 +149,9 @@ def rerank_results(query: str, hits: list[dict], limit: int) -> list[RankedResul
         raw_score = float(hit["score"])
         score = raw_score
         score += SOURCE_TYPE_BOOSTS.get(hit["source_type"], 0.0)
+        score += min(max(float(hit.get("confidence", 0.7)) - 0.7, 0.0), 0.3) * 0.4
+        score += 0.05 if hit.get("canonical", False) else 0.0
+        score += _freshness_boost(hit.get("modified_at", ""))
         score += _curation_boost(hit["path"], hit["source_type"])
         score += _overlap_score(query_tokens, hit["heading"], 0.32)
         score += _overlap_score(query_tokens, hit["path"], 0.22)
@@ -141,6 +167,9 @@ def rerank_results(query: str, hits: list[dict], limit: int) -> list[RankedResul
                 source_name=hit.get("source_name", ""),
                 heading=hit["heading"],
                 text=hit["text"],
+                confidence=float(hit.get("confidence", 0.7)),
+                canonical=bool(hit.get("canonical", False)),
+                modified_at=hit.get("modified_at", ""),
             )
         )
 
@@ -155,15 +184,15 @@ def rerank_results(query: str, hits: list[dict], limit: int) -> list[RankedResul
 
     selected: list[RankedResult] = []
     seen_pairs: set[tuple[str, str]] = set()
-    seen_paths: dict[str, int] = {}
+    seen_paths: set[str] = set()
     for item in ranked:
         pair = (item.path, item.heading)
         if pair in seen_pairs:
             continue
-        if seen_paths.get(item.path, 0) >= 2:
+        if item.path in seen_paths:
             continue
         seen_pairs.add(pair)
-        seen_paths[item.path] = seen_paths.get(item.path, 0) + 1
+        seen_paths.add(item.path)
         selected.append(item)
         if len(selected) >= limit:
             break

@@ -1,6 +1,8 @@
 sources:
   - name: repo-readmes
     source_type: internal_docs
+    confidence: 0.72
+    canonical: false
     paths:
       - /Users/matthewschwartz/projects/*/README.md
     exclude_paths:
@@ -8,6 +10,8 @@ sources:
 
   - name: repo-guidance
     source_type: internal_guidance
+    confidence: 0.9
+    canonical: true
     paths:
       - /Users/matthewschwartz/projects/*/AGENTS.md
       - /Users/matthewschwartz/projects/*/CLAUDE.md
@@ -16,6 +20,8 @@ sources:
 
   - name: repo-docs
     source_type: internal_docs
+    confidence: 0.82
+    canonical: true
     paths:
       - /Users/matthewschwartz/projects/*/docs/**/*.md
     exclude_paths:
@@ -23,10 +29,14 @@ sources:
 
   - name: local-docs
     source_type: internal_docs
+    confidence: 0.95
+    canonical: true
     paths:
       - ./docs/**/*.md
 
   - name: personal-memory
     source_type: personal_memory
+    confidence: 0.96
+    canonical: true
     paths:
       - ./personal-memory/**/*.md

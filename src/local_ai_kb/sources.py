@@ -15,6 +15,8 @@ class SourceFile:
     path: Path
     source_name: str
     source_type: str
+    confidence: float
+    canonical: bool
 
 
 def _expand_path(pattern: str) -> Iterable[Path]:
@@ -54,6 +56,8 @@ def iter_source_files() -> list[SourceFile]:
     for source in config.get("sources", []):
         source_name = source["name"]
         source_type = source["source_type"]
+        confidence = float(source.get("confidence", 0.7))
+        canonical = bool(source.get("canonical", False))
         exclude_paths = source.get("exclude_paths", [])
         for pattern in source.get("paths", []):
             for path in _expand_path(pattern):
@@ -71,6 +75,8 @@ def iter_source_files() -> list[SourceFile]:
                         path=resolved_path,
                         source_name=source_name,
                         source_type=source_type,
+                        confidence=confidence,
+                        canonical=canonical,
                     )
                 )
 

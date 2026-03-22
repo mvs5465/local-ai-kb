@@ -75,6 +75,9 @@ def search(
                 "source_name": payload.get("source_name", ""),
                 "heading": payload.get("heading", ""),
                 "text": payload.get("text", ""),
+                "confidence": float(payload.get("confidence", 0.7)),
+                "canonical": bool(payload.get("canonical", False)),
+                "modified_at": payload.get("modified_at", ""),
             }
         )
     return rerank_results(query=query, hits=results, limit=limit)

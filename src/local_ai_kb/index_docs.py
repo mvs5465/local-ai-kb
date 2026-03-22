@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from pathlib import Path
 import uuid
 
@@ -26,6 +27,7 @@ def build_points() -> list[models.PointStruct]:
     for source_file in iter_source_files():
         path = source_file.path
         text = path.read_text(encoding="utf-8")
+        modified_at = datetime.fromtimestamp(path.stat().st_mtime, tz=timezone.utc).isoformat()
         for idx, chunk in enumerate(chunk_markdown(path, text)):
             chunk_text = chunk["text"]
             chunk_payloads.append(
@@ -35,6 +37,9 @@ def build_points() -> list[models.PointStruct]:
                     "text": chunk_text,
                     "source_type": source_file.source_type,
                     "source_name": source_file.source_name,
+                    "confidence": source_file.confidence,
+                    "canonical": source_file.canonical,
+                    "modified_at": modified_at,
                 }
             )
             chunk_texts.append(f"{chunk['heading']}\n\n{chunk_text}")

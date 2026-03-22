@@ -1,0 +1,33 @@
+cases:
+  - query: which repo should I edit for ArgoCD bootstrap policy
+    expected_any:
+      - projects/local-ai-kb/docs/internal/which-repo-to-edit.md
+      - projects/local-k8s-argocd/AGENTS.md
+    top_k: 3
+
+  - query: what local ports and endpoints are commonly used
+    expected_any:
+      - projects/local-ai-kb/docs/internal/ports-and-endpoints.md
+    top_k: 2
+
+  - query: how do projects usually run locally
+    expected_any:
+      - projects/local-ai-kb/docs/internal/local-run-conventions.md
+    top_k: 2
+
+  - query: what is the relationship between local-k8s-argocd and local-k8s-apps
+    expected_any:
+      - projects/local-ai-kb/docs/internal/repo-dependency-map.md
+      - projects/local-ai-kb/docs/internal/cluster-architecture.md
+    top_k: 3
+
+  - query: where should I change appproject source repos
+    expected_any:
+      - projects/local-ai-kb/docs/internal/which-repo-to-edit.md
+      - projects/local-ai-kb/docs/internal/cluster-architecture.md
+    top_k: 3
+
+  - query: what workflow preferences are stable across repos
+    expected_any:
+      - projects/local-ai-kb/personal-memory/preferences/project-workflow.md
+    top_k: 2
