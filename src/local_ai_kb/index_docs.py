@@ -6,27 +6,16 @@ import uuid
 from qdrant_client.http import models
 
 from local_ai_kb.chunking import chunk_markdown
-from local_ai_kb.config import DOC_ROOTS
 from local_ai_kb.embedding import embed_texts
 from local_ai_kb.qdrant_store import ensure_collection, replace_points
+from local_ai_kb.sources import iter_source_files
 
 
-def iter_source_files() -> list[Path]:
-    files: list[Path] = []
-    for root in DOC_ROOTS:
-        if not root.exists():
-            continue
-        files.extend(sorted(root.rglob("*.md")))
-    return files
-
-
-def file_source_type(path: Path) -> str:
-    parts = path.parts
-    if "personal-memory" in parts:
-        return "personal_memory"
-    if "external" in parts:
-        return "external_reference"
-    return "internal_docs"
+def display_path(path: Path) -> str:
+    try:
+        return path.relative_to(Path.home()).as_posix()
+    except ValueError:
+        return path.as_posix()
 
 
 def build_points() -> list[models.PointStruct]:
@@ -34,17 +23,18 @@ def build_points() -> list[models.PointStruct]:
     chunk_texts: list[str] = []
     chunk_payloads: list[dict] = []
 
-    for path in iter_source_files():
+    for source_file in iter_source_files():
+        path = source_file.path
         text = path.read_text(encoding="utf-8")
         for idx, chunk in enumerate(chunk_markdown(path, text)):
             chunk_text = chunk["text"]
-            relative_path = path.relative_to(path.parents[2]).as_posix()
             chunk_payloads.append(
                 {
-                    "path": relative_path,
+                    "path": display_path(path),
                     "heading": chunk["heading"],
                     "text": chunk_text,
-                    "source_type": file_source_type(path),
+                    "source_type": source_file.source_type,
+                    "source_name": source_file.source_name,
                 }
             )
             chunk_texts.append(f"{chunk['heading']}\n\n{chunk_text}")
@@ -76,7 +66,7 @@ def build_points() -> list[models.PointStruct]:
 def main() -> None:
     points = build_points()
     if not points:
-        print("No markdown files found under docs/ or personal-memory/")
+        print("No markdown files matched sources.yaml")
         return
     replace_points(points)
     print(f"Indexed {len(points)} chunks into Qdrant")

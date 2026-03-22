@@ -1,0 +1,32 @@
+sources:
+  - name: repo-readmes
+    source_type: internal_docs
+    paths:
+      - /Users/matthewschwartz/projects/*/README.md
+    exclude_paths:
+      - /Users/matthewschwartz/projects/_worktrees/**/*
+
+  - name: repo-guidance
+    source_type: internal_guidance
+    paths:
+      - /Users/matthewschwartz/projects/*/AGENTS.md
+      - /Users/matthewschwartz/projects/*/CLAUDE.md
+    exclude_paths:
+      - /Users/matthewschwartz/projects/_worktrees/**/*
+
+  - name: repo-docs
+    source_type: internal_docs
+    paths:
+      - /Users/matthewschwartz/projects/*/docs/**/*.md
+    exclude_paths:
+      - /Users/matthewschwartz/projects/_worktrees/**/*
+
+  - name: local-docs
+    source_type: internal_docs
+    paths:
+      - ./docs/**/*.md
+
+  - name: personal-memory
+    source_type: personal_memory
+    paths:
+      - ./personal-memory/**/*.md

@@ -26,6 +26,7 @@ personal-memory/
   gotchas/
   preferences/
 scripts/
+sources.yaml
 src/local_ai_kb/
 ```
 
@@ -34,3 +35,5 @@ src/local_ai_kb/
 - `make run` pulls `embeddinggemma` if it is missing locally.
 - Qdrant installs into `.local/bin/qdrant` and stores data under `.data/qdrant/`.
 - Personal memory remains file-backed and portable; Qdrant is only the retrieval layer.
+- Index sources are configured in `sources.yaml`. The default config includes all top-level repo `README.md` files under `~/projects`, plus local `docs/` and `personal-memory/`.
+- Each source block in `sources.yaml` supports `paths` plus optional `exclude_paths`, so you can add repo docs, `AGENTS.md`/`CLAUDE.md`, or other markdown sources without touching code.
