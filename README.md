@@ -41,4 +41,5 @@ src/local_ai_kb/
 - Each source block in `sources.yaml` supports `paths` plus optional `exclude_paths`, so you can add repo docs, `AGENTS.md`/`CLAUDE.md`, or other markdown sources without touching code.
 - Source blocks can also carry `confidence` and `canonical` metadata, which the reranker uses when ordering results.
 - The MCP server now exposes both `search_kb` and `record_memory`.
+- `search_kb` works best without `source_types` by default; if you want to narrow, it accepts either a JSON list or a comma-separated string, and friendly aliases like `memory`, `docs`, `guidance`, and `external`.
 - `record_memory` writes a markdown note into `personal-memory/` and indexes it immediately, so future sessions can capture durable notes without manual file editing.

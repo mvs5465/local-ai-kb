@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+from typing import Iterable
 
 import uvicorn
 from mcp.server.fastmcp import FastMCP
@@ -16,6 +17,57 @@ from local_ai_kb.retrieval import format_flags, format_snippet
 
 host = os.getenv("HOST", "127.0.0.1")
 port = int(os.getenv("PORT", "8090"))
+
+SOURCE_TYPE_ALIASES = {
+    "all": (),
+    "any": (),
+    "memory": ("personal_memory",),
+    "memories": ("personal_memory",),
+    "personal": ("personal_memory",),
+    "personal_memory": ("personal_memory",),
+    "document": ("internal_docs",),
+    "documents": ("internal_docs",),
+    "doc": ("internal_docs",),
+    "docs": ("internal_docs",),
+    "internal": ("internal_docs",),
+    "internal_doc": ("internal_docs",),
+    "internal_docs": ("internal_docs",),
+    "guidance": ("internal_guidance",),
+    "guide": ("internal_guidance",),
+    "internal_guidance": ("internal_guidance",),
+    "agents": ("internal_guidance",),
+    "claude": ("internal_guidance",),
+    "external": ("external_reference",),
+    "external_reference": ("external_reference",),
+    "reference": ("external_reference",),
+    "references": ("external_reference",),
+}
+
+
+def _iter_source_type_tokens(source_types: list[str] | str | None) -> Iterable[str]:
+    if source_types is None:
+        return ()
+    if isinstance(source_types, str):
+        raw_values = source_types.split(",")
+    else:
+        raw_values = source_types
+    return (value.strip().lower() for value in raw_values if value and value.strip())
+
+
+def _normalize_source_types(source_types: list[str] | str | None) -> tuple[list[str] | None, list[str]]:
+    normalized: list[str] = []
+    unknown: list[str] = []
+
+    for token in _iter_source_type_tokens(source_types):
+        mapped = SOURCE_TYPE_ALIASES.get(token)
+        if mapped is None:
+            unknown.append(token)
+            continue
+        for item in mapped:
+            if item not in normalized:
+                normalized.append(item)
+
+    return (normalized or None), unknown
 
 mcp = FastMCP(
     "local-ai-kb",
@@ -36,13 +88,33 @@ mcp = FastMCP(
 @mcp.tool(
     description=(
         "Search the local knowledge base for internal docs, external references, and personal durable memory. "
-        "Use this for environment-specific questions, local process, design decisions, and recurring gotchas."
+        "Use this for environment-specific questions, local process, design decisions, and recurring gotchas. "
+        "Prefer omitting source_types unless you intentionally want to narrow the search. source_types accepts "
+        "either a JSON list or a comma-separated string. Friendly filters are supported: memory, docs, guidance, "
+        "external, or the exact types personal_memory, internal_docs, internal_guidance, external_reference."
     )
 )
-def search_kb(query: str, limit: int = 5, source_types: list[str] | None = None) -> str:
+def search_kb(query: str, limit: int = 5, source_types: list[str] | str | None = None) -> str:
     embedding = embed_texts([query])[0]
-    results = search(query=query, embedding=embedding, limit=limit, source_types=source_types)
+    normalized_source_types, unknown_source_types = _normalize_source_types(source_types)
+    results = search(
+        query=query,
+        embedding=embedding,
+        limit=limit,
+        source_types=normalized_source_types,
+    )
+
+    prefix_lines: list[str] = []
+    if unknown_source_types:
+        prefix_lines.append(
+            "Ignored unknown source_types: "
+            + ", ".join(unknown_source_types)
+            + ". Valid filters are memory, docs, guidance, external."
+        )
     if not results:
+        if prefix_lines:
+            prefix_lines.append("No matching KB entries found.")
+            return "\n".join(prefix_lines)
         return "No matching KB entries found."
 
     lines = []
@@ -56,7 +128,7 @@ def search_kb(query: str, limit: int = 5, source_types: list[str] | None = None)
         lines.append(f"flags: {format_flags(item)}")
         lines.append(format_snippet(item.text))
         lines.append("")
-    return "\n".join(lines).strip()
+    return "\n".join(prefix_lines + lines).strip()
 
 
 @mcp.tool(
